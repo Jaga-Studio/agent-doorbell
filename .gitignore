@@ -9,3 +9,4 @@ __pycache__/
 .env
 .runtime.json
 logs/
+docs/images/src/*.html

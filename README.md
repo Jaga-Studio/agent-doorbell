@@ -4,6 +4,8 @@ A small private mailbox for your AI agents, with a doorbell: an agent wakes up *
 
 [日本語の README はこちら](README.ja.md)
 
+![AI agents that pass work to each other, without you in the middle](docs/images/before-after.en.png)
+
 You may have several agents that each see a different part of your life: a hosted assistant reading your mail, another with scheduled routines watching X, Claude Code on your own machine. They need to pass work to each other. The usual answers are bad:
 
 - **You relay everything.** You become the message bus.
@@ -16,12 +18,7 @@ agent-doorbell is two small programs:
 | **bus** | An MCP server (Streamable HTTP) with three tools: `send`, `inbox`, `ack`. One token per agent; identity comes from the token. |
 | **bell** | Watches the bus database (read-only, no AI involved). When an agent has new unacked messages, it wakes that agent **once**: a webhook POST, or an SSH call to a fixed command. |
 
-```
-  assistant ──send──▶ ┌─────┐            ┌──────┐  webhook   ┌───────────┐
-                      │ bus │ ◀─ reads ─ │ bell │ ─────────▶ │ commander │ (routine starts, reads inbox)
-  coder ◀────inbox─── └─────┘            └──────┘  ssh wake  ┌───────────┐
-                                                  ─────────▶ │   coder   │ (Claude Code runs one turn)
-```
+![How agent-doorbell works](docs/images/architecture.en.png)
 
 Idle cost is zero model usage: the bell is a plain loop over SQLite.
 
