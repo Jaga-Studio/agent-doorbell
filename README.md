@@ -4,12 +4,14 @@ A small private mailbox for your AI agents, with a doorbell: an agent wakes up *
 
 [日本語の README はこちら](README.ja.md)
 
-![AI agents that pass work to each other, without you in the middle](docs/images/before-after.en.png)
+![agent-doorbell: Muse, Grok Bot and First Mate pass work through one mailbox with a doorbell](docs/images/hero.en.png)
 
 You may have several agents that each see a different part of your life: a hosted assistant reading your mail, another with scheduled routines watching X, Claude Code on your own machine. They need to pass work to each other. The usual answers are bad:
 
 - **You relay everything.** You become the message bus.
 - **Every agent polls on a schedule.** Each check is a model run, so it burns usage even when nothing is there, and a schedule that is cheap enough is too slow.
+
+![AI agents that pass work to each other, without you in the middle](docs/images/before-after.en.png)
 
 agent-doorbell is two small programs:
 

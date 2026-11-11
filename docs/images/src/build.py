@@ -136,6 +136,61 @@ def architecture(lang):
       <div class="foot"><span><b>agent-doorbell</b></span><span>{t["foot"]}</span></div>'''
     return body
 
+H_T = {
+ "en": dict(tag="A mailbox with a doorbell for your AI agents",
+   pills=["wakes an agent only when a message arrives", "zero AI usage while idle", "./setup.sh, no Docker needed"],
+   muse=("Muse", "mail & schedule", "checks in on its own"),
+   grok=("Grok Bot", "watches X", "woken by a webhook"),
+   fm=("First Mate", "Claude Code on a Mac", "woken over SSH"),
+   m1=("Grok Bot → First Mate", "A trending topic. Can you draft an article?"),
+   m2=("First Mate → Muse", "Draft is ready. Add it to our human's list."),
+   m3=("Muse → Grok Bot", "Tomorrow's posts: after 9 am, please."),
+   hub="bus + bell", human="Sending, money, publishing: a human always presses the button."),
+ "ja": dict(tag="AI エージェントどうしの郵便受けと呼び鈴",
+   pills=["届いたときだけ起こす", "待っている間の AI 使用量はゼロ", "./setup.sh で導入、Docker 不要"],
+   muse=("Muse", "メールと予定", "自分で受信箱を見回る"),
+   grok=("Grok Bot", "X の見張り", "Webhook で起きる"),
+   fm=("First Mate", "Claude Code（Mac）", "SSH で起きる"),
+   m1=("Grok Bot → First Mate", "話題の記事、下書きお願いできる？"),
+   m2=("First Mate → Muse", "下書きできた。キャプテンの確認リストへ"),
+   m3=("Muse → Grok Bot", "明日の投稿は 9 時以降でお願い"),
+   hub="bus + 呼び鈴", human="送信・お金・公開は、いつも人が最後に押す"),
+}
+
+def hero(lang):
+    t = T[lang]; h = H_T[lang]
+    HX, HY = 800, 565
+    def node(x, y, color, letter, info):
+        name, l1, l2 = info
+        return (f'<div style="position:absolute;left:{x}px;top:{y}px;width:360px;height:150px;background:#fff;border-radius:24px;'
+                f'box-shadow:0 3px 0 #E4E2DC;padding:24px 26px;display:flex;gap:18px;align-items:center">'
+                f'<div style="flex:none;width:76px;height:76px;border-radius:50%;background:{color};color:#fff;font-size:40px;font-weight:800;'
+                f'display:flex;align-items:center;justify-content:center">{letter}</div>'
+                f'<div><div style="font-size:30px;font-weight:800">{name}</div>'
+                f'<div style="font-size:19px;color:#555A61;margin-top:4px;line-height:1.4">{l1}<br>{l2}</div></div></div>')
+    def bubble(x, y, msg, color):
+        who, text = msg
+        return (f'<div style="position:absolute;left:{x}px;top:{y}px;width:450px;background:#FFFDF8;border:2px solid {color};border-radius:18px;'
+                f'padding:14px 18px"><div style="font-size:16px;font-weight:700;color:{color}">{who}</div>'
+                f'<div style="font-size:20px;margin-top:4px;line-height:1.35">{text}</div></div>')
+    pills = "".join(f'<span style="display:inline-block;margin-right:12px;padding:8px 16px;border-radius:999px;background:#fff;'
+                    f'border:2px solid #E8890C;color:#9A5A00;font-size:20px;font-weight:700">{p}</span>' for p in h["pills"])
+    svg = f'<svg width="{W}" height="{H}" style="position:absolute;left:0;top:0">' + "".join(
+        f'<line x1="{x}" y1="{y}" x2="{HX}" y2="{HY}" stroke="#C9CDD2" stroke-width="5" stroke-dasharray="2 12" stroke-linecap="round"/>'
+        for x, y in ((430, 560), (810, 455), (1170, 560))) + '</svg>'
+    return f"""
+      <div style="position:absolute;left:70px;top:52px"><div style="font-size:60px;font-weight:800;letter-spacing:-1px;display:flex;align-items:center;gap:16px">{BELL.format(s=56)}agent-doorbell</div>
+        <div style="font-size:30px;color:#3A3F45;margin-top:4px">{h["tag"]}</div>
+        <div style="margin-top:16px">{pills}</div></div>
+      {svg}
+      {node(70, 485, "#7B5CD6", "M", h["muse"])}{node(630, 305, "#1F2328", "G", h["grok"])}{node(1170, 485, "#D9653B", "F", h["fm"])}
+      <div style="position:absolute;left:{HX-100}px;top:{HY-100}px;width:200px;height:200px;border-radius:50%;background:#fff;border:5px solid #E8890C;
+        display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 0 0 14px rgba(232,137,12,.12)">
+        {BELL.format(s=70)}<div style="font-size:22px;font-weight:800;margin-top:6px">{h["hub"]}</div></div>
+      {bubble(1020, 320, h["m1"], "#D9653B")}{bubble(1020, 690, h["m2"], "#7B5CD6")}{bubble(130, 690, h["m3"], "#1F2328")}
+      <div class="foot"><span>{h["human"]}</span><span>github.com/Jaga-Studio/agent-doorbell · MIT</span></div>"""
+
+
 def render(name, lang, body):
     html = f'<!doctype html><html lang="{lang}"><meta charset="utf-8"><style>{CSS % (W, H, T[lang]["font"])}</style><body style="position:relative">{body}</body></html>'
     src = os.path.join(HERE, f"{name}.{lang}.html")
@@ -153,5 +208,6 @@ def render(name, lang, body):
     print(png)
 
 for lang in ("en", "ja"):
+    render("hero", lang, hero(lang))
     render("before-after", lang, before_after(lang))
     render("architecture", lang, architecture(lang))
