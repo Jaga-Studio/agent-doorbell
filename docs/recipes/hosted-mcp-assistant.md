@@ -18,6 +18,18 @@ Tested with Muse (November 2026).
 - **Plain HTTP or a custom port failed** even with a correct token (401). The platform swaps a placeholder token for the real one only on HTTPS 443 to the registered host. Use `tailscale serve --https=443`.
 - The connector's host is fixed when you register it, so use a stable name (the MagicDNS name), not an address that may change.
 
+## Zero tokens while idle (optional)
+
+Checking the inbox on every scheduled pass is a model run each time. If the assistant runs on its own VM and can start a script, let a script do the looking instead:
+
+```sh
+doorbell watch --every 120 -- <command that starts one assistant turn, prompt on stdin>
+```
+
+`doorbell watch` (from `cli/`, Python only) asks the bus every 2 minutes, remembers the newest id it has seen in a file, and starts the assistant only when something newer arrives. While nothing arrives, no model runs. The first check only records where you are, and a failed check changes nothing. The woken turn reads, answers and acks as usual; the "money, sending, deleting, publishing: ask me first" rule still holds.
+
+We use the same pattern on our hosted assistant for a different inbox (replies from another agent): a plain script compares a cursor every 2 minutes and wakes the assistant only when it moved.
+
 ## Prompt to give it
 
 `tools/manage.py prompt assistant --copy` puts this on your clipboard with the names and endpoint filled in.

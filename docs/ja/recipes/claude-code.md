@@ -1,6 +1,6 @@
 # つなぎ方：手元の Claude Code（ほかの CLI エージェントも）
 
-Claude Code は CLI で bus とやりとりでき、呼び鈴は SSH で起こせます。起こすたびにヘッドレス実行が 1 回。メッセージが届いたときだけです。
+ふつうの Claude Code だけで使えます。ほかの仕組みは要りません。CLI で bus とやりとりし、起こし方は 2 通りから選べます。起こすたびに `claude -p` のヘッドレス実行が 1 回。メッセージが届いたときだけです。
 
 ## 1. bus とやりとりする
 
@@ -19,7 +19,28 @@ CLI に必要なのは Python 3.9 以上だけ。`export` の 2 行はシェル�
 
 MCP でつなぎたい場合は `claude mcp add --transport http doorbell https://<機械の名前>.<tailnet>.ts.net/mcp --header "Authorization: Bearer <トークン>"` でも動きますが、トークンが Claude Code の設定ファイルに入ります。CLI なら権限 600 のファイル 1 つで済みます。
 
-## 2. 呼び鈴で起こせるようにする
+## 2. 起こし方 A：`doorbell watch`（いちばん簡単、SSH 不要）
+
+Claude Code が動く機械だけで済みます。bus の機械では何もしません。
+
+```sh
+cp examples/claude-code/claude-turn ~/.local/bin/claude-turn && chmod 755 ~/.local/bin/claude-turn
+# 上のほうの DOORBELL_URL / DOORBELL_TOKEN_FILE / DOORBELL_WORKDIR を自分の値に
+mkdir -p ~/.local/state/agent-doorbell
+nohup doorbell watch --every 60 -- ~/.local/bin/claude-turn >> ~/.local/state/agent-doorbell/watch.log 2>&1 &
+```
+
+- `doorbell watch` は 60 秒ごとに未処理のメッセージを bus に聞きます。ただの HTTP なので、何も届かない間はモデルが動きません
+- 前回より新しいメッセージがあったときだけ、起こす文面を標準入力に入れて `claude-turn` を 1 回動かします。`claude-turn` は `claude -p --allowedTools "Bash(doorbell:*)"` なので、その回でできるのは読む・返事・ack だけです
+- 最初の 1 回は今の位置を覚えるだけで、それより前のメッセージでは起きません。bus に届かないときは何もせず、次の回にもう一度見ます
+- `DOORBELL_WORKDIR` は、手順 1 の agent-doorbell ブロックを入れた `CLAUDE.md` があるフォルダにします
+- `nohup` ならターミナルを閉じても動き続けますが、再起動後は止まります。再起動後も動かすには、同じコマンドを launchd（macOS）か `systemd --user`（Linux）から起動します
+
+確認済み：ほかのエージェントからの 1 通で `claude -p` が 1 回起き、`reply_to` 付きで返事して ack しました（約 10 秒）。
+
+## 2. 起こし方 B：呼び鈴が SSH で起こす
+
+Claude Code の機械に見回りをさせたくないときや、起こすタイミングを bus の機械側で決めたいとき（まとめて 1 回、1 日の上限つき）はこちら。私たちは、自分の受信箱を持つ常駐のエージェントでこちらを使っています。
 
 **Claude Code が動く機械で**：
 
@@ -27,8 +48,7 @@ MCP でつなぎたい場合は `claude mcp add --transport http doorbell https:
    ```sh
    cp examples/ssh-wake/wake ~/.local/bin/doorbell-wake && chmod 755 ~/.local/bin/doorbell-wake
    ```
-   中の `WAKE_COMMAND` を決めます。CLI しか使えないヘッドレスの Claude Code を 1 回動かすなら、`DOORBELL_URL` / `DOORBELL_TOKEN_FILE` を設定して
-   `claude -p --allowedTools "Bash(doorbell:*)"` を実行する小さなスクリプトを指定します（プロンプトは標準入力で届く）。すでに常駐のエージェントがいて自分の受信箱を持っているなら、その受信箱に積む形にします（私たちはこちら）
+   中の `WAKE_COMMAND` を `["/Users/you/.local/bin/claude-turn"]`（A の小さなスクリプト）にすれば、ヘッドレスで 1 回動きます。すでに常駐のエージェントがいて自分の受信箱を持っているなら、その受信箱に積む形にします
 
 **bus の機械で**：
 
@@ -59,8 +79,11 @@ secret_file = "secrets/bell/coder.env"
 
 ## 3. 試す
 
-`coder` に 1 通送ります。`~/.local/state/agent-doorbell/wake.log` に bus の機械の IP から `wake [...]` が 1 行だけ出て、エージェントが 1 回動けば成功。SSH で `ls` を送ると拒否されます。
+ほかのメンバーから `coder` に 1 通送ります。
+
+- A：`watch.log` に `woke for [<id>] (exit 0)` が出て、送った側に返事が届けば成功
+- B：`~/.local/state/agent-doorbell/wake.log` に bus の機械の IP から `wake [...]` が 1 行だけ出て、エージェントが 1 回動けば成功。SSH で `ls` を送ると拒否されます
 
 ## 使用量の見込み
 
-メッセージのまとまりごとにヘッドレス実行 1 回（まとめるのは最短 1 分おき、1 日の上限つき）。何も無ければゼロ。
+新しいメッセージのまとまりごとにヘッドレス実行 1 回。B はさらに最短 1 分おきにまとめ、1 日の上限もあります。何も無ければ、どちらもモデルの使用量はゼロ。

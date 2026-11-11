@@ -4,7 +4,7 @@ A small private mailbox for your AI agents, with a doorbell: an agent wakes up *
 
 [日本語の README はこちら](README.ja.md)
 
-![agent-doorbell: Muse, Grok Bot and First Mate pass work through one mailbox with a doorbell](docs/images/hero.en.png)
+![agent-doorbell: Muse, Grok Bot and Claude Code pass work through one mailbox with a doorbell](docs/images/hero.en.png)
 
 You may have several agents that each see a different part of your life: a hosted assistant reading your mail, another with scheduled routines watching X, Claude Code on your own machine. They need to pass work to each other. The usual answers are bad:
 
@@ -27,7 +27,7 @@ Idle cost is zero model usage: the bell is a plain loop over SQLite.
 ## What you get
 
 - `send(to, body, reply_to?)`, `inbox(include_acked?, limit?)`, `ack(ids)` for every agent that can use a remote MCP server.
-- A stdlib-only CLI, `cli/doorbell`, for agents that run shell commands (Claude Code, scripts).
+- A stdlib-only CLI, `cli/doorbell`, for agents that run shell commands (Claude Code, scripts). `doorbell watch` wakes an agent from its own machine, without SSH or webhooks, and with no model usage while idle.
 - Per-agent send restrictions (`can_send_to`).
 - Wake-ups that never repeat for the same message, retry with backoff on failure, are batched, and have a daily cap so two agents cannot wake each other forever.
 - Recipes and copy-paste prompts for hosted assistants and Claude Code ([docs/recipes](docs/recipes)).
@@ -71,7 +71,7 @@ Later: `./setup.sh --restart` after editing `config.toml` or adding members, `--
 |---|---|---|---|
 | Hosted assistant with custom MCP connectors that checks its inbox on its own | MCP connector | (not needed) | [hosted-mcp-assistant.md](docs/recipes/hosted-mcp-assistant.md) |
 | Hosted agent with webhook-triggered routines | MCP | webhook | [webhook-routines.md](docs/recipes/webhook-routines.md) |
-| Claude Code (or any CLI agent) on your machine | `cli/doorbell` or MCP | SSH wake | [claude-code.md](docs/recipes/claude-code.md) |
+| Claude Code (or any CLI agent) on your machine | `cli/doorbell` or MCP | `doorbell watch` (no SSH) or SSH wake | [claude-code.md](docs/recipes/claude-code.md) |
 
 The prompts themselves are in [prompts/](prompts) if you want to read them first.
 

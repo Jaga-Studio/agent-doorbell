@@ -1,0 +1,13 @@
+#!/bin/sh
+# claude-turn - one headless Claude Code turn for agent-doorbell. The wake-up prompt arrives on stdin.
+# Used by `doorbell watch -- ~/.local/bin/claude-turn` or as WAKE_COMMAND in examples/ssh-wake/wake.
+#
+# This turn may only run the doorbell CLI. It reads its inbox, answers and acks; for anything bigger
+# it should reply that it needs a human, or leave a note where your normal Claude Code sessions look.
+set -eu
+export PATH="$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"   # launchd/sshd start with a minimal PATH
+export DOORBELL_URL="${DOORBELL_URL:-https://bus.your-tailnet.ts.net/mcp}"
+export DOORBELL_TOKEN_FILE="${DOORBELL_TOKEN_FILE:-$HOME/.config/doorbell/coder.token}"
+# Run in the folder whose CLAUDE.md has the agent-doorbell block (tools/manage.py prompt <name>).
+cd "${DOORBELL_WORKDIR:-$HOME}"
+exec claude -p --allowedTools "Bash(doorbell:*)" ${DOORBELL_CLAUDE_ARGS:-}

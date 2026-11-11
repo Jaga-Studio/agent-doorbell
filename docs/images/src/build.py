@@ -23,7 +23,7 @@ T = {
   ar_title="How agent-doorbell works",
   c1="Hosted assistant", c1s="custom MCP connector<br>checks its inbox on its own<br>no bell needed", c1e="tested with Muse",
   c2="Webhook-routine agent", c2s="connects over MCP<br>woken by a webhook", c2e="tested with Grok Bot",
-  c3="Claude Code / CLI agent", c3s="doorbell CLI<br>woken over SSH<br>(one fixed command only)", c3e="tested with Claude Code",
+  c3="Claude Code / CLI agent", c3s="doorbell CLI<br>woken by doorbell watch,<br>or over SSH (one fixed command)", c3e="tested with Claude Code",
   region="One always-on machine on your tailnet (Mac mini, Linux, NAS). Nothing public.",
   bus_s="MCP server: send · inbox · ack<br>tokens stored as hashes only",
   bell_s="watches the inbox, no AI<br>wakes each agent once per batch<br>daily cap",
@@ -43,7 +43,7 @@ T = {
   ar_title="agent-doorbell のしくみ",
   c1="ホスト型アシスタント", c1s="MCP コネクタでつなぐ<br>自分で受信箱を見回る<br>呼び鈴は不要", c1e="Muse で確認",
   c2="Webhook ルーティン", c2s="MCP でつなぐ<br>Webhook で起こす", c2e="Grok Bot で確認",
-  c3="Claude Code など CLI", c3s="doorbell CLI でつなぐ<br>SSH で起こす<br>（決まったコマンドだけ）", c3e="Claude Code で確認",
+  c3="Claude Code など CLI", c3s="doorbell CLI でつなぐ<br>doorbell watch で起こす<br>か SSH（決まったコマンドだけ）", c3e="Claude Code で確認",
   region="tailnet の中の常時起動の機械 1 台（Mac mini・Linux・NAS）。外には公開しない",
   bus_s="MCP サーバー：send・inbox・ack<br>トークンはハッシュだけ保存",
   bell_s="受信箱を見張る（AI は使わない）<br>まとめて 1 回だけ起こす<br>1 日の上限つき",
@@ -141,18 +141,18 @@ H_T = {
    pills=["wakes an agent only when a message arrives", "zero AI usage while idle", "./setup.sh, no Docker needed"],
    muse=("Muse", "mail & schedule", "checks in on its own"),
    grok=("Grok Bot", "watches X", "woken by a webhook"),
-   fm=("First Mate", "Claude Code on a Mac", "woken over SSH"),
-   m1=("Grok Bot → First Mate", "A trending topic. Can you draft an article?"),
-   m2=("First Mate → Muse", "Draft is ready. Add it to our human's list."),
+   fm=("Claude Code", "on your Mac or Linux box", "woken by watch or SSH"),
+   m1=("Grok Bot → Claude Code", "A trending topic. Can you draft an article?"),
+   m2=("Claude Code → Muse", "Draft is ready. Add it to our human's list."),
    m3=("Muse → Grok Bot", "Tomorrow's posts: after 9 am, please."),
    hub="bus + bell", human="Sending, money, publishing: a human always presses the button."),
  "ja": dict(tag="AI エージェントどうしの郵便受けと呼び鈴",
    pills=["届いたときだけ起こす", "待っている間の AI 使用量はゼロ", "./setup.sh で導入、Docker 不要"],
    muse=("Muse", "メールと予定", "自分で受信箱を見回る"),
    grok=("Grok Bot", "X の見張り", "Webhook で起きる"),
-   fm=("First Mate", "Claude Code（Mac）", "SSH で起きる"),
-   m1=("Grok Bot → First Mate", "話題の記事、下書きお願いできる？"),
-   m2=("First Mate → Muse", "下書きできた。キャプテンの確認リストへ"),
+   fm=("Claude Code", "手元の Mac・Linux", "watch か SSH で起きる"),
+   m1=("Grok Bot → Claude Code", "話題の記事、下書きお願いできる？"),
+   m2=("Claude Code → Muse", "下書きできた。キャプテンの確認リストへ"),
    m3=("Muse → Grok Bot", "明日の投稿は 9 時以降でお願い"),
    hub="bus + 呼び鈴", human="送信・お金・公開は、いつも人が最後に押す"),
 }
@@ -166,7 +166,7 @@ def hero(lang):
                 f'box-shadow:0 3px 0 #E4E2DC;padding:24px 26px;display:flex;gap:18px;align-items:center">'
                 f'<div style="flex:none;width:76px;height:76px;border-radius:50%;background:{color};color:#fff;font-size:40px;font-weight:800;'
                 f'display:flex;align-items:center;justify-content:center">{letter}</div>'
-                f'<div><div style="font-size:30px;font-weight:800">{name}</div>'
+                f'<div><div style="font-size:28px;font-weight:800;white-space:nowrap">{name}</div>'
                 f'<div style="font-size:19px;color:#555A61;margin-top:4px;line-height:1.4">{l1}<br>{l2}</div></div></div>')
     def bubble(x, y, msg, color):
         who, text = msg
@@ -183,7 +183,7 @@ def hero(lang):
         <div style="font-size:30px;color:#3A3F45;margin-top:4px">{h["tag"]}</div>
         <div style="margin-top:16px">{pills}</div></div>
       {svg}
-      {node(70, 485, "#7B5CD6", "M", h["muse"])}{node(630, 305, "#1F2328", "G", h["grok"])}{node(1170, 485, "#D9653B", "F", h["fm"])}
+      {node(70, 485, "#7B5CD6", "M", h["muse"])}{node(630, 305, "#1F2328", "G", h["grok"])}{node(1170, 485, "#D9653B", "C", h["fm"])}
       <div style="position:absolute;left:{HX-100}px;top:{HY-100}px;width:200px;height:200px;border-radius:50%;background:#fff;border:5px solid #E8890C;
         display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 0 0 14px rgba(232,137,12,.12)">
         {BELL.format(s=70)}<div style="font-size:22px;font-weight:800;margin-top:6px">{h["hub"]}</div></div>

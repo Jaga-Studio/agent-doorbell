@@ -109,6 +109,33 @@ can_send_to = ["alice"]
         self.assertNotEqual(r.returncode, 0)
         self.assertIn("may only send to", r.stderr)
 
+    def test_watch_wakes_only_for_new_messages(self):
+        state = os.path.join(self.d, "watch.json")
+        log = os.path.join(self.d, "woken.txt")
+        cmd = [sys.executable, "-c", f"import sys; open({log!r}, 'a').write(sys.stdin.read())"]
+        def watch_once():
+            env = dict(os.environ, DOORBELL_URL=self.url, DOORBELL_TOKEN_FILE=os.path.join(self.d, "bob.token"))
+            return subprocess.run([sys.executable, os.path.join(ROOT, "cli", "doorbell"), "watch", "--once",
+                                   "--state", state, "--", *cmd], env=env, capture_output=True, text=True)
+        self.cli("alice", "send", "bob", stdin="old one")
+        watch_once()                                   # first check: baseline, no wake
+        self.assertFalse(os.path.exists(log))
+        watch_once()                                   # nothing new: silent
+        self.assertFalse(os.path.exists(log))
+        new_id = json.loads(self.cli("alice", "send", "bob", stdin="new one").stdout)["id"]
+        watch_once()
+        with open(log) as f:
+            self.assertIn(f"ids: {new_id})", f.read())
+        watch_once()                                   # same message again: no second wake
+        with open(log) as f:
+            self.assertEqual(f.read().count("New agent-doorbell messages"), 1)
+        env = dict(os.environ, DOORBELL_URL="http://127.0.0.1:9/mcp", DOORBELL_TOKEN_FILE=os.path.join(self.d, "bob.token"))
+        r = subprocess.run([sys.executable, os.path.join(ROOT, "cli", "doorbell"), "watch", "--once", "--state", state, "--", *cmd],
+                           env=env, capture_output=True, text=True)
+        self.assertEqual(r.returncode, 0)              # bus unreachable: quiet, cursor kept
+        with open(state) as f:
+            self.assertEqual(json.load(f)["cursor"], new_id)
+
     def test_limits(self):
         r = self.cli("alice", "send", "bob", stdin="x" * 101)
         self.assertIn("exceeds", r.stderr)

@@ -4,7 +4,7 @@ AI エージェントどうしの小さな郵便受けと、呼び鈴。**自分
 
 [English README](README.md)
 
-![agent-doorbell：Muse・Grok Bot・First Mate が 1 つの郵便受けと呼び鈴で仕事を受け渡す](docs/images/hero.ja.png)
+![agent-doorbell：Muse・Grok Bot・Claude Code が 1 つの郵便受けと呼び鈴で仕事を受け渡す](docs/images/hero.ja.png)
 
 メールを読むアシスタント、定時のルーティンで X を見ているエージェント、手元の Claude Code。見ている範囲がそれぞれ違うエージェントを使っていると、仕事を受け渡したくなります。よくあるやり方はどちらもつらいものです。
 
@@ -27,7 +27,7 @@ agent-doorbell は小さなプログラム 2 つです。
 ## できること
 
 - リモート MCP を使えるエージェントなら、`send(to, body, reply_to?)`・`inbox()`・`ack(ids)` がそのまま使える
-- シェルを使えるエージェント（Claude Code、スクリプト）向けに、標準ライブラリだけの CLI `cli/doorbell`
+- シェルを使えるエージェント（Claude Code、スクリプト）向けに、標準ライブラリだけの CLI `cli/doorbell`。`doorbell watch` を使えば、SSH も Webhook も無しに、エージェントの機械の側から起こせる（待っている間のモデル使用量はゼロ）
 - エージェントごとの送り先の制限（`can_send_to`）
 - 呼び鈴は、同じメッセージで二度鳴らない・失敗したら間をあけて再試行・まとめて 1 回・1 日の上限つき（2 つのエージェントが起こし合い続けるのを防ぐ）
 - ホスト型アシスタントと Claude Code のつなぎ方と、そのまま渡せるプロンプト例（[docs/ja/recipes](docs/ja/recipes)）
@@ -71,7 +71,7 @@ macOS では `~/agent-doorbell` のような場所に置いてください。書
 |---|---|---|---|
 | カスタム MCP コネクタが使え、自分で受信箱を見に行くホスト型アシスタント | MCP コネクタ | （不要） | [hosted-mcp-assistant.md](docs/ja/recipes/hosted-mcp-assistant.md) |
 | Webhook で起動できるルーティンを持つホスト型エージェント | MCP | Webhook | [webhook-routines.md](docs/ja/recipes/webhook-routines.md) |
-| 手元の Claude Code（ほかの CLI エージェントも） | `cli/doorbell` か MCP | SSH | [claude-code.md](docs/ja/recipes/claude-code.md) |
+| 手元の Claude Code（ほかの CLI エージェントも） | `cli/doorbell` か MCP | `doorbell watch`（SSH 不要）か SSH | [claude-code.md](docs/ja/recipes/claude-code.md) |
 
 渡すプロンプトの中身は [prompts/ja/](prompts/ja) で先に読めます。
 
