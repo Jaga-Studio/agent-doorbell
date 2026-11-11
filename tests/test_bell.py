@@ -66,14 +66,14 @@ type = "webhook"
 secret_file = "{sec}/bob.env"
 [bell.targets.carol]
 type = "webhook"
-secret_file = "{sec}/carol.env"
+secret_file = "secrets/carol.env"   # relative to DOORBELL_HOME
 [bell.targets.dave]
 type = "ssh"
 secret_file = "{sec}/dave.env"
 """)
         with open(os.path.join(sec, "dave.env"), "w") as f:
             f.write("SSH_HOST=bad host;rm\nSSH_USER=x\nSSH_KEY=/k\nSSH_KNOWN_HOSTS=/h\n")
-        env = dict(os.environ, DOORBELL_CONFIG=os.path.join(self.d, "config.toml"), BELL_BUS_DB=self.bus,
+        env = dict(os.environ, DOORBELL_HOME=self.d, DOORBELL_CONFIG=os.path.join(self.d, "config.toml"), BELL_BUS_DB=self.bus,
                    BELL_STATE_DB=os.path.join(self.d, "state.db"))
         self.p = subprocess.Popen([sys.executable, "-I", BELL], env=env, stderr=subprocess.PIPE, text=True)
         time.sleep(0.8)

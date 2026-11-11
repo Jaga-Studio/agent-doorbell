@@ -6,12 +6,13 @@
 #   tools/set-secret.sh webhook <member> [ssh-host]   URL + optional key (macOS: from the clipboard)
 #   tools/set-secret.sh ssh <member> [ssh-host]       SSH_HOST/SSH_USER/... for an ssh wake-up
 #
-# With [ssh-host], the file is written on that host under $DOORBELL_DIR (default /opt/agent-doorbell).
+# With [ssh-host], the file is written on that host under $DOORBELL_DIR (default ~/agent-doorbell on that host).
 set -eu
 kind="${1:-}"; member="${2:-}"; remote="${3:-}"
 case "$kind" in webhook|ssh) ;; *) sed -n '2,10p' "$0"; exit 1;; esac
 [[ "$member" =~ ^[A-Za-z0-9_-]+$ ]] || { echo "member name: letters, digits, - and _"; exit 1; }
-dir="${DOORBELL_DIR:-$( [[ -n "$remote" ]] && echo /opt/agent-doorbell || pwd)}/secrets/bell"
+# default: the checkout you are in, or ~/agent-doorbell on the remote host (relative = from its home)
+dir="${DOORBELL_DIR:-$( [[ -n "$remote" ]] && echo agent-doorbell || pwd)}/secrets/bell"
 
 grab() {  # $1 = prompt; prints the value
   if command -v pbpaste >/dev/null; then
@@ -39,7 +40,7 @@ else
   read -rp "Host the bell connects to (IP or name): " h
   read -rp "User on that host: " u
   read -rp "Port [22]: " p
-  content="SSH_HOST=$h"$'\n'"SSH_USER=$u"$'\n'"SSH_PORT=${p:-22}"$'\n'"SSH_KEY=/secrets/bell/${member}_ed25519"$'\n'"SSH_KNOWN_HOSTS=/secrets/bell/${member}_known_hosts"$'\n'
+  content="SSH_HOST=$h"$'\n'"SSH_USER=$u"$'\n'"SSH_PORT=${p:-22}"$'\n'"SSH_KEY=secrets/bell/${member}_ed25519"$'\n'"SSH_KNOWN_HOSTS=secrets/bell/${member}_known_hosts"$'\n'
 fi
 
 write='umask 077; mkdir -p "$1" && chmod 700 "$1" && cat > "$1/$2.env.tmp" && mv "$1/$2.env.tmp" "$1/$2.env"'

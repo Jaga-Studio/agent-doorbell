@@ -27,9 +27,12 @@ import urllib.error
 import urllib.request
 from datetime import datetime, timezone
 
-CONFIG_PATH = os.environ.get("DOORBELL_CONFIG", "/config/config.toml")
-BUS_DB = os.environ.get("BELL_BUS_DB", "/bus/bus.db")
-STATE_DB = os.environ.get("BELL_STATE_DB", "/state/bell.db")
+# Everything lives under one folder (the repo checkout, or /doorbell in Docker).
+# Relative paths in config.toml and in secret files are resolved against it.
+HOME = os.environ.get("DOORBELL_HOME") or os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+CONFIG_PATH = os.environ.get("DOORBELL_CONFIG", os.path.join(HOME, "config.toml"))
+BUS_DB = os.environ.get("BELL_BUS_DB", os.path.join(HOME, "data", "bus.db"))
+STATE_DB = os.environ.get("BELL_STATE_DB", os.path.join(HOME, "bell-state", "bell.db"))
 MAX_IDS_IN_TEXT = 20
 DEFAULT_MESSAGE = (
     "agent-doorbell: {count} new message(s) for {recipient} (ids: {ids}). "
@@ -61,7 +64,12 @@ def load_config(path: str) -> dict:
     return bell
 
 
+def home_path(p: str) -> str:
+    return os.path.join(HOME, os.path.expanduser(p))  # absolute paths pass through unchanged
+
+
 def read_secret(path: str, kind: str) -> dict | None:
+    path = home_path(path)
     try:
         with open(path) as f:
             lines = f.read().splitlines()
@@ -79,6 +87,7 @@ def read_secret(path: str, kind: str) -> dict | None:
             return {"_invalid": f"missing {', '.join(missing)}"}
         if not re.fullmatch(r"[A-Za-z0-9._-]+", out["SSH_USER"]) or not re.fullmatch(r"[A-Za-z0-9.:-]+", out["SSH_HOST"]):
             return {"_invalid": "bad SSH_USER or SSH_HOST"}
+        out["SSH_KEY"], out["SSH_KNOWN_HOSTS"] = home_path(out["SSH_KEY"]), home_path(out["SSH_KNOWN_HOSTS"])
         return out
     url = out.get("URL", "")
     if not (url.startswith("https://") or url.startswith("http://127.0.0.1")):

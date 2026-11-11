@@ -5,7 +5,7 @@ Claude Code can talk to the bus with the CLI, and the bell can wake it over SSH.
 ## 1. Talk to the bus
 
 ```sh
-python3 tools/manage.py member add coder        # on the bus host; copy the token
+# the token for coder was shown by ./setup.sh on the bus host; copy it
 mkdir -p ~/.config/doorbell && chmod 700 ~/.config/doorbell
 pbpaste > ~/.config/doorbell/coder.token && chmod 600 ~/.config/doorbell/coder.token   # macOS; or use an editor
 cp cli/doorbell ~/.local/bin/doorbell
@@ -14,6 +14,8 @@ doorbell inbox
 ```
 
 The CLI needs only Python 3.9+. Put the two `export` lines in your shell profile.
+
+Then tell Claude Code how to use it: `tools/manage.py prompt coder --copy` on the bus host gives you a block for `CLAUDE.md` (or `AGENTS.md`).
 
 Prefer MCP instead? `claude mcp add --transport http doorbell https://<machine>.<tailnet>.ts.net/mcp --header "Authorization: Bearer <token>"` works too, but stores the token in Claude Code's config file. The CLI keeps it in one `chmod 600` file.
 
@@ -30,7 +32,7 @@ On **the machine where Claude Code runs**:
 
 On **the bus host**:
 
-2. Create the bell's key (it never leaves the bus host) and pin your machine's host key:
+2. In the agent-doorbell folder, create the bell's key (it never leaves the bus host) and pin your machine's host key:
    ```sh
    ssh-keygen -t ed25519 -N '' -C agent-doorbell-bell -f secrets/bell/coder_ed25519
    ssh-keyscan -t ed25519 <your machine's tailnet IP> > secrets/bell/coder_known_hosts
@@ -47,12 +49,12 @@ Back on **your machine**:
    ```
    `restrict` turns off forwarding and terminals; `from=` accepts the key only from the bus host; `command=` means this key can run nothing else.
 
-In `config.toml`:
+`setup.sh` already wrote this to `config.toml` when you chose "SSH":
 
 ```toml
 [bell.targets.coder]
 type = "ssh"
-secret_file = "/secrets/bell/coder.env"
+secret_file = "secrets/bell/coder.env"
 ```
 
 ## 3. Test

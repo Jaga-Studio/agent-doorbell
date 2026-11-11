@@ -9,7 +9,7 @@ AI エージェントどうしの小さな郵便受けと、呼び鈴。**自分
 - **人が全部伝言する。** 自分がメッセージバスになってしまう。
 - **全員が定時に見に行く。** 見に行くたびにモデルが動くので、何も無くても使用量が減る。使用量を抑えると、今度は気づくのが遅い。
 
-agent-doorbell は小さなコンテナ 2 つです。
+agent-doorbell は小さなプログラム 2 つです。
 
 | 部品 | 役割 |
 |---|---|
@@ -39,32 +39,35 @@ agent-doorbell は小さなコンテナ 2 つです。
 
 ## はじめかた
 
-必要なもの：Docker（Compose）と、tailnet に入っていて常に起動している機械（NAS・小型 PC・Raspberry Pi・小さな VPS など）。
+必要なのは、[Tailscale](https://tailscale.com) の tailnet に入っていて常に起動している機械 1 台です（Mac mini・Linux の PC・Raspberry Pi・小さな VPS・NAS など）。**Docker は要りません。**
 
 ```sh
 git clone https://github.com/Jaga-Studio/agent-doorbell && cd agent-doorbell
-cp config.example.toml config.toml      # エージェントの名前と allowed_hosts を書く
-mkdir -p data bell-state secrets/bell && chmod 700 secrets secrets/bell
-
-# エージェントごとにトークンを作る。表示は 1 回だけで、保存されるのはハッシュだけ
-python3 tools/manage.py member add assistant
-python3 tools/manage.py member add commander
-python3 tools/manage.py member add coder
-
-export DOORBELL_UID=$(id -u) DOORBELL_GID=$(id -g)
-docker compose up -d --build
-tailscale serve --bg --https=443 http://127.0.0.1:8765   # tailnet の中だけの HTTPS
+./setup.sh
 ```
 
-接続先は `https://<機械の名前>.<tailnet>.ts.net/mcp` になります。このホスト名を `allowed_hosts` に入れてください。
+`setup.sh` はエージェントの名前と、それぞれの起こし方を聞いたあと、次を行います。
 
-次に、エージェントをつなぎます。
+1. `config.toml` を作る（機械の tailnet 名は Tailscale から自動で入れる）
+2. エージェントごとにトークンを発行（表示は 1 回だけ、保存されるのはハッシュだけ）
+3. bus が使う Python の部品 2 つを [uv](https://docs.astral.sh/uv/) で `.venv` に入れる（uv は Python ごと面倒を見る小さなコマンド。GUI なし。無ければ入れるか聞きます）
+4. bus と呼び鈴を常駐させる（macOS は launchd、Linux は `systemd --user`）。再起動しても自動で上がります
+5. 確認のうえ `tailscale serve` を実行し、tailnet の中だけの HTTPS 名を付ける
+6. エージェントごとに、トークンと「そのまま渡せるプロンプト」（接続先入り）を表示。プロンプトはクリップボードにも入れられます
+
+すでに Docker を使っている機械（NAS など）なら `./setup.sh --docker`。ほかは同じです。
+
+macOS では `~/agent-doorbell` のような場所に置いてください。書類・デスクトップ・iCloud Drive の中は、常駐プログラムから読めません。
+
+あとから：`config.toml` を直したりメンバーを足したら `./setup.sh --restart`。状態は `--status`、止めるのは `--stop`。プロンプトをもう一度出すには `tools/manage.py prompt <名前> --lang ja --copy`。
 
 | エージェント | つなぎ方 | 起こし方 | 手順 |
 |---|---|---|---|
 | カスタム MCP コネクタが使え、自分で受信箱を見に行くホスト型アシスタント | MCP コネクタ | （不要） | [hosted-mcp-assistant.md](docs/ja/recipes/hosted-mcp-assistant.md) |
 | Webhook で起動できるルーティンを持つホスト型エージェント | MCP | Webhook | [webhook-routines.md](docs/ja/recipes/webhook-routines.md) |
 | 手元の Claude Code（ほかの CLI エージェントも） | `cli/doorbell` か MCP | SSH | [claude-code.md](docs/ja/recipes/claude-code.md) |
+
+渡すプロンプトの中身は [prompts/ja/](prompts/ja) で先に読めます。
 
 ## 設定
 
@@ -73,8 +76,7 @@ tailscale serve --bg --https=443 http://127.0.0.1:8765   # tailnet の中だけ�
 ## テスト
 
 ```sh
-pip install -r bus/requirements.txt
-python -m unittest discover -s tests
+uv run --python 3.12 --with-requirements bus/requirements.txt python -m unittest discover -s tests
 ```
 
 ## いまの状態

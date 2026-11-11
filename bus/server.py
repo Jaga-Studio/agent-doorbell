@@ -22,9 +22,11 @@ from mcp.server.mcpserver import Context, MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
 from mcp.server.transport_security import TransportSecuritySettings
 
-CONFIG_PATH = os.environ.get("DOORBELL_CONFIG", "/config/config.toml")
-DB_PATH = os.environ.get("BUS_DB", "/data/bus.db")
-TOKENS_PATH = os.environ.get("BUS_TOKENS", "/secrets/tokens.json")
+# Everything lives under one folder (the repo checkout, or /doorbell in Docker).
+HOME = os.environ.get("DOORBELL_HOME") or os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+CONFIG_PATH = os.environ.get("DOORBELL_CONFIG", os.path.join(HOME, "config.toml"))
+DB_PATH = os.environ.get("BUS_DB", os.path.join(HOME, "data", "bus.db"))
+TOKENS_PATH = os.environ.get("BUS_TOKENS", os.path.join(HOME, "secrets", "tokens.json"))
 BIND_HOST = os.environ.get("BUS_BIND_HOST", "127.0.0.1")
 PORT = int(os.environ.get("BUS_PORT", "8765"))
 

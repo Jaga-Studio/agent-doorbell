@@ -1,8 +1,7 @@
-# agent-doorbell: the bus (MCP server) and the bell (wake-ups).
-# The bus listens on 127.0.0.1 only; put it on your tailnet with
-#   tailscale serve --bg --https=443 http://127.0.0.1:8765
-# The bell has no ports at all.
-# Run as your own uid/gid: export DOORBELL_UID=$(id -u) DOORBELL_GID=$(id -g)
+# agent-doorbell with Docker (optional; ./setup.sh runs it without Docker by default).
+# `./setup.sh --docker` writes .env (your uid/gid) and starts this.
+# The bus listens on 127.0.0.1 only; tailscale serve puts it on your tailnet. The bell has no ports.
+# Inside the containers this folder is /doorbell, so paths in config.toml stay the same either way.
 services:
   bus:
     build: ./bus
@@ -11,15 +10,13 @@ services:
     restart: always
     user: "${DOORBELL_UID:-1000}:${DOORBELL_GID:-1000}"
     environment:
-      DOORBELL_CONFIG: /config/config.toml
+      DOORBELL_HOME: /doorbell
       BUS_BIND_HOST: "127.0.0.1"
-      BUS_PORT: "8765"
-      BUS_DB: /data/bus.db
-      BUS_TOKENS: /secrets/tokens.json
+      BUS_PORT: "${DOORBELL_PORT:-8765}"
     volumes:
-      - ./config.toml:/config/config.toml:ro
-      - ./data:/data
-      - ./secrets/tokens.json:/secrets/tokens.json:ro
+      - ./config.toml:/doorbell/config.toml:ro
+      - ./data:/doorbell/data
+      - ./secrets/tokens.json:/doorbell/secrets/tokens.json:ro
     read_only: true
     tmpfs: [/tmp]
     security_opt: [no-new-privileges:true]
@@ -31,14 +28,12 @@ services:
     restart: always
     user: "${DOORBELL_UID:-1000}:${DOORBELL_GID:-1000}"
     environment:
-      DOORBELL_CONFIG: /config/config.toml
-      BELL_BUS_DB: /bus/bus.db
-      BELL_STATE_DB: /state/bell.db
+      DOORBELL_HOME: /doorbell
     volumes:
-      - ./config.toml:/config/config.toml:ro
-      - ./data:/bus            # opened read-only (mode=ro); the dir stays writable for SQLite's WAL index
-      - ./bell-state:/state
-      - ./secrets/bell:/secrets/bell:ro
+      - ./config.toml:/doorbell/config.toml:ro
+      - ./data:/doorbell/data   # opened read-only (mode=ro); the dir stays writable for SQLite's WAL index
+      - ./bell-state:/doorbell/bell-state
+      - ./secrets/bell:/doorbell/secrets/bell:ro
     read_only: true
     tmpfs: [/tmp]
     security_opt: [no-new-privileges:true]

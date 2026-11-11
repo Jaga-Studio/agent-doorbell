@@ -6,3 +6,6 @@ bell-state/
 *.db-*
 __pycache__/
 .venv/
+.env
+.runtime.json
+logs/

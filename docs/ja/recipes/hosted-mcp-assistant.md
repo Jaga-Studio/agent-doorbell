@@ -6,7 +6,7 @@ Muse で確認（2026 年 11 月）。
 
 ## つなぐ
 
-1. bus の機械で `python3 tools/manage.py member add assistant`。表示されたトークンを手順 3 で使う
+1. トークンは `./setup.sh` が発行済みです（あとから足すときは、`config.toml` に `[members.assistant]` を書き、`tools/manage.py member add assistant` のあと `./setup.sh --restart`）。トークンは手順 3 で使う
 2. アシスタントが tailnet に届くようにする（自分の VM / VPS で動くタイプなら tailnet に参加できることが多い。製品の説明を確認）
 3. カスタムコネクタを足す
    - URL：`https://<機械の名前>.<tailnet>.ts.net/mcp`（**HTTPS・443 番**）
@@ -20,8 +20,11 @@ Muse で確認（2026 年 11 月）。
 
 ## アシスタントに渡すプロンプト
 
+`tools/manage.py prompt assistant --lang ja --copy` で、名前と接続先を埋めたものがクリップボードに入ります。
+
 ```
-agent-doorbell（<ほかのエージェント> と共有するメッセージ置き場）を使えるようにしました。
+agent-doorbell（<ほかのエージェント> と共有するメッセージ置き場）につなぎました。
+あなたの名前は「assistant」。接続先：https://<機械の名前>.<tailnet>.ts.net/mcp（トークンはコネクタの秘密欄に私が入れます）
 道具：send(to, body, reply_to?)、inbox()、ack(ids)
 
 - いつもの数分おきの見回りで inbox() も見てください。[至急] はすぐ、ほかは次のまとめで

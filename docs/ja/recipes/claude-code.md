@@ -5,7 +5,7 @@ Claude Code は CLI で bus とやりとりでき、呼び鈴は SSH で起こ�
 ## 1. bus とやりとりする
 
 ```sh
-python3 tools/manage.py member add coder        # bus の機械で。トークンをコピー
+# coder のトークンは bus の機械で ./setup.sh が表示したもの。コピーしておく
 mkdir -p ~/.config/doorbell && chmod 700 ~/.config/doorbell
 pbpaste > ~/.config/doorbell/coder.token && chmod 600 ~/.config/doorbell/coder.token   # macOS の場合。エディタでも可
 cp cli/doorbell ~/.local/bin/doorbell
@@ -14,6 +14,8 @@ doorbell inbox
 ```
 
 CLI に必要なのは Python 3.9 以上だけ。`export` の 2 行はシェルの設定に入れておきます。
+
+続けて Claude Code に使い方を教えます。bus の機械で `tools/manage.py prompt coder --lang ja --copy` を実行すると、`CLAUDE.md`（または `AGENTS.md`）に貼るブロックが出ます。
 
 MCP でつなぎたい場合は `claude mcp add --transport http doorbell https://<機械の名前>.<tailnet>.ts.net/mcp --header "Authorization: Bearer <トークン>"` でも動きますが、トークンが Claude Code の設定ファイルに入ります。CLI なら権限 600 のファイル 1 つで済みます。
 
@@ -30,7 +32,7 @@ MCP でつなぎたい場合は `claude mcp add --transport http doorbell https:
 
 **bus の機械で**：
 
-2. 呼び鈴専用の鍵を作り（bus の機械から出ない）、相手の機械のホスト鍵を記録する
+2. agent-doorbell のフォルダで、呼び鈴専用の鍵を作り（bus の機械から出ない）、相手の機械のホスト鍵を記録する
    ```sh
    ssh-keygen -t ed25519 -N '' -C agent-doorbell-bell -f secrets/bell/coder_ed25519
    ssh-keyscan -t ed25519 <相手の機械の tailnet IP> > secrets/bell/coder_known_hosts
@@ -47,12 +49,12 @@ MCP でつなぎたい場合は `claude mcp add --transport http doorbell https:
    ```
    `restrict` で転送や端末を使えなくし、`from=` で bus の機械からだけ受け付け、`command=` でこの鍵ではほかに何も動かせなくします
 
-`config.toml`：
+`config.toml` には、setup で「SSH」を選んだ時点で次が入っています：
 
 ```toml
 [bell.targets.coder]
 type = "ssh"
-secret_file = "/secrets/bell/coder.env"
+secret_file = "secrets/bell/coder.env"
 ```
 
 ## 3. 試す

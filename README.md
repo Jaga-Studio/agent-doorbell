@@ -9,7 +9,7 @@ You may have several agents that each see a different part of your life: a hoste
 - **You relay everything.** You become the message bus.
 - **Every agent polls on a schedule.** Each check is a model run, so it burns usage even when nothing is there, and a schedule that is cheap enough is too slow.
 
-agent-doorbell is two small containers:
+agent-doorbell is two small programs:
 
 | Part | What it does |
 |---|---|
@@ -46,39 +46,35 @@ See [SECURITY.md](SECURITY.md).
 
 ## Quick start
 
-Requirements: Docker with Compose, and a machine that is always on (a NAS, a mini PC, a Raspberry Pi, a small VPS) on your tailnet.
+You need a machine that is always on and in your [Tailscale](https://tailscale.com) tailnet: a Mac mini, a Linux box, a Raspberry Pi, a small VPS, a NAS. **Docker is not required.**
 
 ```sh
 git clone https://github.com/Jaga-Studio/agent-doorbell && cd agent-doorbell
-cp config.example.toml config.toml      # name your agents, set allowed_hosts
-mkdir -p data bell-state secrets/bell && chmod 700 secrets secrets/bell
-
-# one token per agent; each is printed once, only its hash is stored
-python3 tools/manage.py member add assistant
-python3 tools/manage.py member add commander
-python3 tools/manage.py member add coder
-
-export DOORBELL_UID=$(id -u) DOORBELL_GID=$(id -g)
-docker compose up -d --build
-tailscale serve --bg --https=443 http://127.0.0.1:8765   # tailnet-only HTTPS
+./setup.sh
 ```
 
-Your endpoint is now `https://<machine>.<tailnet>.ts.net/mcp`. Put that host name in `allowed_hosts`.
+`setup.sh` asks for your agents' names and how each one is woken up, then:
 
-Then connect each agent:
+1. writes `config.toml` (your tailnet name is filled in from Tailscale)
+2. issues one token per agent (shown once; only hashes are stored)
+3. installs the bus's two Python packages into `.venv` with [uv](https://docs.astral.sh/uv/) (a small command-line tool that brings its own Python; it offers to install it if missing)
+4. starts the bus and the bell as background services (launchd on macOS, `systemd --user` on Linux), so they come back after a reboot
+5. runs `tailscale serve` (after asking) so the bus gets a tailnet-only HTTPS name
+6. shows, for each agent, its token and the prompt to give it, with your endpoint filled in, and copies the prompt to the clipboard if you like
 
-| Your agent | Connects with | Woken by | Recipe |
+Already run Docker (e.g. on a NAS)? Use `./setup.sh --docker` instead; everything else is the same.
+
+On macOS, clone it somewhere like `~/agent-doorbell`, not inside Documents, Desktop or iCloud Drive: background services are not allowed to read those folders.
+
+Later: `./setup.sh --restart` after editing `config.toml` or adding members, `--status`, `--stop`. `tools/manage.py prompt <name> --copy` gives you an agent's prompt again.
+
+| Your agent | Connects with | Woken by | Guide |
 |---|---|---|---|
 | Hosted assistant with custom MCP connectors that checks its inbox on its own | MCP connector | (not needed) | [hosted-mcp-assistant.md](docs/recipes/hosted-mcp-assistant.md) |
 | Hosted agent with webhook-triggered routines | MCP | webhook | [webhook-routines.md](docs/recipes/webhook-routines.md) |
 | Claude Code (or any CLI agent) on your machine | `cli/doorbell` or MCP | SSH wake | [claude-code.md](docs/recipes/claude-code.md) |
 
-Smoke test from any tailnet machine:
-
-```sh
-export DOORBELL_URL=https://<machine>.<tailnet>.ts.net/mcp DOORBELL_TOKEN_FILE=~/.config/doorbell/coder.token
-echo "hello" | cli/doorbell send assistant
-```
+The prompts themselves are in [prompts/](prompts) if you want to read them first.
 
 ## Configuration
 
@@ -87,8 +83,7 @@ Everything is in `config.toml` ([example](config.example.toml)): members, who ma
 ## Running the tests
 
 ```sh
-pip install -r bus/requirements.txt
-python -m unittest discover -s tests
+uv run --python 3.12 --with-requirements bus/requirements.txt python -m unittest discover -s tests
 ```
 
 ## Status
