@@ -12,11 +12,14 @@ Rules this template follows:
   - arguments are validated, never passed to a shell
   - input text arrives on stdin with a size limit, never in arguments
   - read-only by default; each write verb only appends/queues, never runs anything on the agent's behalf
+  - a leading gate name is skipped ("agent-gate status" == "status"), so an agent that already calls
+    `ssh you@mac agent-gate status` keeps working unchanged after you restrict its key
 """
 import datetime as dt
 import json
 import os
 import re
+import shlex
 import sys
 
 HOME = os.path.expanduser("~")
@@ -61,7 +64,12 @@ VERBS = {"health": verb_health, "status": verb_status, "note": verb_note}
 
 def main():
     client = (os.environ.get("SSH_CLIENT") or "local").split()[0]
-    words = (os.environ.get("SSH_ORIGINAL_COMMAND") or "").split()
+    try:
+        words = shlex.split(os.environ.get("SSH_ORIGINAL_COMMAND") or "")
+    except ValueError:
+        words = []
+    if words and os.path.basename(words[0]) in (os.path.basename(sys.argv[0]), "agent-gate"):
+        words = words[1:]  # same command line before and after the key is restricted
     if not words or words[0] not in VERBS:
         log(f"refused from {client}: {' '.join(words)[:80]!r}")
         print(json.dumps({"error": "refused", "verbs": sorted(VERBS)}))
