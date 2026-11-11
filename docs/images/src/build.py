@@ -18,6 +18,7 @@ T = {
   a1="Messages wait in a shared inbox", a1s="send · inbox · ack, over MCP or a tiny CLI",
   a2="Only a new message wakes an agent", a2s="Idle: zero model usage.",
   run="model run", msg="message arrives", inbox="inbox",
+  chat=[("Muse → Grok Bot", "Tomorrow's posts: after 9 am, please."), ("Grok Bot → Muse", "Got it. Scheduled for 9:30.")],
   agent_a="Grok Bot", agent_b="Claude Code",
   foot="github.com/Jaga-Studio/agent-doorbell · MIT · git clone … && ./setup.sh",
   ar_title="How agent-doorbell works",
@@ -38,6 +39,7 @@ T = {
   a1="メッセージは共有の受信箱で待つ", a1s="MCP か小さな CLI で send・inbox・ack",
   a2="届いたときだけ、呼び鈴が相手を 1 回起こす", a2s="何も無い間の AI 使用量はゼロ",
   run="AI が動く", msg="メッセージ到着", inbox="受信箱",
+  chat=[("Muse → Grok Bot", "明日の投稿は 9 時以降でお願い"), ("Grok Bot → Muse", "了解。9:30 に予約しました")],
   agent_a="Grok Bot", agent_b="Claude Code",
   foot="github.com/Jaga-Studio/agent-doorbell · MIT · git clone … && ./setup.sh",
   ar_title="agent-doorbell のしくみ",
@@ -77,24 +79,30 @@ def timeline(active_all, lang):
                     + ('<span style="position:absolute;top:-34px;left:50%;transform:translateX(-50%);font-size:24px">✉︎</span>' if hit else '') + '</span>')
     legend = (f'<div style="font-size:19px;color:#6B6F76;margin-top:12px"><span style="color:#E8890C">●</span> {t["run"]}'
               f' &nbsp; ✉︎ {t["msg"]}</div>')
-    return f'<div style="margin-top:46px">{"".join(dots)}</div>{legend}'
+    return f'<div style="margin-top:40px">{"".join(dots)}</div>{legend}'
 
 def before_after(lang):
     t = T[lang]
-    card = 'background:#fff;border-radius:22px;padding:30px 34px;height:262px;box-shadow:0 2px 0 #E4E2DC'
+    card = 'background:#fff;border-radius:22px;padding:28px 34px;height:300px;box-shadow:0 2px 0 #E4E2DC'
+    low = card.replace('height:300px', 'height:236px')
     h = 'font-size:30px;font-weight:700;margin-bottom:8px'
     s = 'font-size:22px;color:#555A61'
     a, b = t["agent_a"], t["agent_b"]
+    chat = "".join(f'<div style="flex:1;background:#F3F8F4;border:2px solid #9CC9AC;border-radius:14px;padding:7px 12px">'
+                   f'<div style="font-size:14px;font-weight:700;color:#2E7D4F">{who}</div>'
+                   f'<div style="font-size:17px;line-height:1.3">{text}</div></div>' for who, text in t["chat"])
     left = f'''
       <div style="font-size:24px;font-weight:700;color:#B4462F;margin-bottom:16px">✕ {t["before"]}</div>
       <div style="{card};margin-bottom:22px"><div style="{h}">{t["b1"]}</div><div style="{s}">{t["b1s"]}</div>
-        <div class="row" style="margin-top:34px"><span class="pill">{a}</span><span class="arrow">→</span><span class="pill" style="border-color:#B4462F;color:#B4462F">{t["you"]}</span><span class="arrow">→</span><span class="pill">{b}</span></div></div>
-      <div style="{card}"><div style="{h}">{t["b2"]}</div><div style="{s}">{t["b2s"]}</div>{timeline(True, lang)}</div>'''
+        <div class="row" style="margin-top:34px"><span class="pill">{a}</span><span class="arrow">→</span><span class="pill" style="border-color:#B4462F;color:#B4462F">{t["you"]}</span><span class="arrow">→</span><span class="pill">{b}</span></div>
+        <div class="row" style="margin-top:14px"><span class="pill">Muse</span><span class="arrow">→</span><span class="pill" style="border-color:#B4462F;color:#B4462F">{t["you"]}</span><span class="arrow">→</span><span class="pill">Grok Bot</span></div></div>
+      <div style="{low}"><div style="{h}">{t["b2"]}</div><div style="{s}">{t["b2s"]}</div>{timeline(True, lang)}</div>'''
     right = f'''
       <div style="font-size:24px;font-weight:700;color:#2E7D4F;margin-bottom:16px">✓ {t["after"]}</div>
       <div style="{card};margin-bottom:22px;outline:3px solid #2E7D4F"><div style="{h}">{t["a1"]}</div><div style="{s}">{t["a1s"]}</div>
-        <div class="row" style="margin-top:34px"><span class="pill">{a}</span><span class="arrow">→</span><span class="pill" style="border-color:#2F6FEB;color:#2F6FEB">{t["inbox"]}</span><span class="arrow">→</span>{BELL.format(s=34)}<span class="arrow">→</span><span class="pill">{b}</span></div></div>
-      <div style="{card};outline:3px solid #2E7D4F"><div style="{h}">{t["a2"]}</div><div style="{s}">{t["a2s"]}</div>{timeline(False, lang)}</div>'''
+        <div class="row" style="margin-top:34px"><span class="pill">{a}</span><span class="arrow">→</span><span class="pill" style="border-color:#2F6FEB;color:#2F6FEB">{t["inbox"]}</span><span class="arrow">→</span>{BELL.format(s=34)}<span class="arrow">→</span><span class="pill">{b}</span></div>
+        <div style="margin-top:14px;display:flex;gap:10px">{chat}</div></div>
+      <div style="{low};outline:3px solid #2E7D4F"><div style="{h}">{t["a2"]}</div><div style="{s}">{t["a2s"]}</div>{timeline(False, lang)}</div>'''
     body = f'''<div class="title">{t["ba_title"]}</div>
       <div style="display:flex;gap:40px;padding:34px 70px 0">
         <div style="flex:1">{left}</div><div style="flex:1">{right}</div></div>
