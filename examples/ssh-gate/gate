@@ -1,0 +1,81 @@
+#!/usr/bin/env python3
+"""gate - pattern for letting a REMOTE agent do a few fixed things on your machine over SSH.
+
+Not part of the bus. Use it when a hosted agent (on a VPS, in a sandbox) needs, say, to read a
+status file or drop a note for another agent, and you do not want to give it a shell.
+
+  authorized_keys (one line):
+    command="/home/you/.local/bin/agent-gate",restrict,from="<agent's IP>" ssh-ed25519 AAAA... remote-agent
+
+Rules this template follows:
+  - an explicit allow-list of verbs; everything else is refused and logged
+  - arguments are validated, never passed to a shell
+  - input text arrives on stdin with a size limit, never in arguments
+  - read-only by default; each write verb only appends/queues, never runs anything on the agent's behalf
+"""
+import datetime as dt
+import json
+import os
+import re
+import sys
+
+HOME = os.path.expanduser("~")
+LOG = os.path.join(HOME, ".local/state/agent-gate/gate.log")
+NOTES = os.path.join(HOME, ".local/state/agent-gate/notes.jsonl")
+STATUS_FILE = os.path.join(HOME, ".local/state/agent-gate/status.json")
+NOTE_MAX = 2000
+
+
+def log(msg):
+    os.makedirs(os.path.dirname(LOG), exist_ok=True)
+    with open(LOG, "a") as f:
+        f.write(f"{dt.datetime.now().isoformat(timespec='seconds')} {msg}\n")
+
+
+def verb_health(args):
+    return {"ok": True, "time": dt.datetime.now().isoformat(timespec="seconds")}
+
+
+def verb_status(args):
+    try:
+        with open(STATUS_FILE) as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return {"status": "unknown"}
+
+
+def verb_note(args):
+    if len(args) != 1 or not re.fullmatch(r"[a-z0-9-]{1,40}", args[0]):
+        raise ValueError("usage: note <topic>  (text on stdin)")
+    text = sys.stdin.read(NOTE_MAX + 1)
+    if not text.strip() or len(text) > NOTE_MAX:
+        raise ValueError(f"note text must be 1..{NOTE_MAX} characters")
+    os.makedirs(os.path.dirname(NOTES), exist_ok=True)
+    with open(NOTES, "a") as f:
+        f.write(json.dumps({"at": dt.datetime.now().isoformat(timespec="seconds"), "topic": args[0], "text": text}, ensure_ascii=False) + "\n")
+    return {"queued": True}
+
+
+VERBS = {"health": verb_health, "status": verb_status, "note": verb_note}
+
+
+def main():
+    client = (os.environ.get("SSH_CLIENT") or "local").split()[0]
+    words = (os.environ.get("SSH_ORIGINAL_COMMAND") or "").split()
+    if not words or words[0] not in VERBS:
+        log(f"refused from {client}: {' '.join(words)[:80]!r}")
+        print(json.dumps({"error": "refused", "verbs": sorted(VERBS)}))
+        return 2
+    try:
+        out = VERBS[words[0]](words[1:])
+    except ValueError as e:
+        log(f"bad args from {client}: {words[0]}")
+        print(json.dumps({"error": str(e)}))
+        return 2
+    log(f"{words[0]} from {client}")
+    print(json.dumps(out, ensure_ascii=False))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

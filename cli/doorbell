@@ -1,0 +1,85 @@
+#!/usr/bin/env python3
+"""doorbell - command-line client for the agent-doorbell bus (Python 3.9+, standard library only).
+
+  doorbell inbox [--all]          your unacked messages (JSON), oldest first; --all includes acked
+  doorbell send <to>              body on stdin
+  doorbell reply <id>             body on stdin -> sent to that message's sender with reply_to=<id>
+  doorbell ack <id> [<id> ...]    mark handled
+
+Environment:
+  DOORBELL_URL         bus endpoint, e.g. https://bus.your-tailnet.ts.net/mcp
+  DOORBELL_TOKEN_FILE  file holding your member token (chmod 600)   [or DOORBELL_TOKEN]
+The token is never printed.
+"""
+import json
+import os
+import sys
+import urllib.error
+import urllib.request
+
+
+def token() -> str:
+    path = os.environ.get("DOORBELL_TOKEN_FILE")
+    if path:
+        with open(os.path.expanduser(path)) as f:
+            return f.read().strip()
+    tok = os.environ.get("DOORBELL_TOKEN", "").strip()
+    if not tok:
+        sys.exit("set DOORBELL_TOKEN_FILE (preferred) or DOORBELL_TOKEN")
+    return tok
+
+
+def call(tool: str, args: dict) -> dict:
+    url = os.environ.get("DOORBELL_URL") or sys.exit("set DOORBELL_URL")
+    body = json.dumps({"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": tool, "arguments": args}})
+    req = urllib.request.Request(url, data=body.encode(), method="POST", headers={
+        "Authorization": f"Bearer {token()}", "Content-Type": "application/json",
+        "Accept": "application/json, text/event-stream", "MCP-Protocol-Version": "2025-06-18",
+    })
+    try:
+        with urllib.request.urlopen(req, timeout=20) as r:
+            resp = json.loads(r.read())
+    except urllib.error.HTTPError as e:
+        sys.exit(f"error: HTTP {e.code}" + (" (bad or missing token)" if e.code == 401 else ""))
+    except urllib.error.URLError as e:
+        sys.exit(f"error: cannot reach the bus ({e.reason})")
+    if "error" in resp:
+        sys.exit(f"error: {resp['error'].get('message')}")
+    result = resp["result"]
+    text = result["content"][0]["text"] if result.get("content") else "{}"
+    if result.get("isError"):
+        sys.exit(f"error: {text}")
+    return result.get("structuredContent") or json.loads(text)
+
+
+def body_from_stdin() -> str:
+    body = sys.stdin.read().strip()
+    if not body:
+        sys.exit("error: empty body on stdin")
+    return body
+
+
+def main(argv):
+    if not argv or argv[0] in ("-h", "--help"):
+        sys.exit(__doc__)
+    cmd, rest = argv[0], argv[1:]
+    if cmd == "inbox":
+        out = call("inbox", {"include_acked": "--all" in rest, "limit": 100})
+    elif cmd == "send" and len(rest) == 1:
+        out = call("send", {"to": rest[0], "body": body_from_stdin()})
+    elif cmd == "reply" and len(rest) == 1 and rest[0].isdigit():
+        mid = int(rest[0])
+        msgs = call("inbox", {"include_acked": True, "limit": 200})["messages"]
+        orig = next((m for m in msgs if m["id"] == mid), None)
+        if orig is None:
+            sys.exit(f"error: message {mid} is not in your inbox (only the latest 200 are searched)")
+        out = call("send", {"to": orig["from"], "body": body_from_stdin(), "reply_to": mid})
+    elif cmd == "ack" and rest and all(x.isdigit() for x in rest):
+        out = call("ack", {"ids": [int(x) for x in rest]})
+    else:
+        sys.exit(__doc__)
+    print(json.dumps(out, ensure_ascii=False, indent=1))
+
+
+if __name__ == "__main__":
+    main(sys.argv[1:])

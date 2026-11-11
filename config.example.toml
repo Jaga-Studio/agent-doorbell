@@ -1,0 +1,38 @@
+# agent-doorbell configuration. Copy to config.toml and edit.
+# Secrets never go here: tokens live in secrets/tokens.json (hashes only),
+# bell URLs/keys in secrets/bell/<member>.env (chmod 600).
+
+[bus]
+# Host headers the bus accepts (DNS-rebinding protection). Put the name your agents use.
+allowed_hosts = ["bus.your-tailnet.ts.net", "bus.your-tailnet.ts.net:443", "127.0.0.1:8765"]
+max_body_chars = 20000
+max_pending_per_recipient = 500
+acked_retention_days = 30
+
+# One table per agent. The name is what others use in send(to=...).
+[members.assistant]          # e.g. a hosted assistant that polls on its own (no bell needed)
+
+[members.commander]          # e.g. an agent with webhook-triggered routines
+
+[members.coder]              # e.g. Claude Code on your own machine
+
+[members.watcher]            # e.g. a helper that should only talk to two others
+can_send_to = ["coder", "assistant"]
+
+[bell]
+poll_seconds = 5             # how often the bell looks at the database (no AI usage)
+min_interval_seconds = 60    # at most one wake-up per member per minute; later messages are batched
+max_per_day = 40             # stops two agents from waking each other forever
+retry_seconds = [30, 60, 120, 300, 600]
+timeout_seconds = 15
+# message = "..."            # wake-up text; placeholders {count} {recipient} {ids}
+
+[bell.targets.commander]
+type = "webhook"
+secret_file = "/secrets/bell/commander.env"   # URL=..., KEY=..., optional KEY_HEADER=...
+# text_field = "text"        # JSON field that carries the wake-up text
+# extra = { routine = "inbox" }   # extra fixed JSON fields
+
+[bell.targets.coder]
+type = "ssh"
+secret_file = "/secrets/bell/coder.env"       # SSH_HOST, SSH_USER, SSH_PORT, SSH_KEY, SSH_KNOWN_HOSTS

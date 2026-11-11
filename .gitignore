@@ -1,0 +1,8 @@
+config.toml
+secrets/
+data/
+bell-state/
+*.db
+*.db-*
+__pycache__/
+.venv/
