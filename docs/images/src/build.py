@@ -160,7 +160,7 @@ H_T = {
    grok=("Grok Bot", "X の見張り", "Webhook で起きる"),
    fm=("Claude Code", "手元の Mac・Linux", "watch か SSH で起きる"),
    m1=("Grok Bot → Claude Code", "話題の記事、下書きお願いできる？"),
-   m2=("Claude Code → Muse", "下書きできた。キャプテンの確認リストへ"),
+   m2=("Claude Code → Muse", "下書きできた。確認リストへ"),
    m3=("Muse → Grok Bot", "明日の投稿は 9 時以降でお願い"),
    hub="bus + 呼び鈴", human="送信・お金・公開は、いつも人が最後に押す"),
 }
